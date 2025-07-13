@@ -14,45 +14,55 @@ function App() {
       canvas.width = window.innerWidth
       canvas.height = window.innerHeight
 
+      // Use actual window dimensions as reference (no scaling needed)
+      const baseWidth = window.innerWidth
+      const baseHeight = window.innerHeight
+
+      // No scaling transformation needed since we use actual dimensions
+      ctx.save()
+
       // Set sketchy line style
       ctx.lineCap = 'round'
       ctx.lineJoin = 'round'
 
-      // Clear canvas with sketchy sky background
-      drawSketchyBackground(ctx, canvas.width, canvas.height)
+      // Clear canvas with sketchy sky background (use base dimensions)
+      drawSketchyBackground(ctx, baseWidth, baseHeight)
 
-      // Draw mountains
-      drawMountains(ctx, canvas.width, canvas.height)
+      // Draw mountains (use base dimensions)
+      drawMountains(ctx, baseWidth, baseHeight)
 
       // Draw river
-      drawRiver(ctx, canvas.width, canvas.height)
+      drawRiver(ctx, baseWidth, baseHeight)
 
       // Draw trees
-      drawTrees(ctx, canvas.width, canvas.height)
+      drawTrees(ctx, baseWidth, baseHeight)
 
       // Draw buildings
-      drawBuildings(ctx, canvas.width, canvas.height)
+      drawBuildings(ctx, baseWidth, baseHeight)
 
       // Draw cabins
-      drawCabins(ctx, canvas.width, canvas.height)
+      drawCabins(ctx, baseWidth, baseHeight)
 
       // Draw mill
-      drawMill(ctx, canvas.width, canvas.height)
+      drawMill(ctx, baseWidth, baseHeight)
 
       // Draw bakery
-      drawBakery(ctx, canvas.width, canvas.height)
+      drawBakery(ctx, baseWidth, baseHeight)
 
       // Draw apple orchard
-      drawAppleOrchard(ctx, canvas.width, canvas.height)
+      drawAppleOrchard(ctx, baseWidth, baseHeight)
 
       // Draw ice cream shop
-      drawIceCreamShop(ctx, canvas.width, canvas.height)
+      drawIceCreamShop(ctx, baseWidth, baseHeight)
 
       // Draw large house
       // Draw large house
       ctx.save()
       ctx.scale(2, 2) // Scale up by 150%
-      drawLargeHouse(ctx, canvas.width / 2, canvas.height / 2)
+      drawLargeHouse(ctx, baseWidth / 2, baseHeight / 2)
+      ctx.restore()
+
+      // Restore the scaling transformation
       ctx.restore()
     }
 
@@ -232,9 +242,9 @@ function App() {
         { peaks: 5, color: '#4B0082', opacity: 0.3, height: 0.15 }, // Far mountains - purple
         { peaks: 4, color: '#483D8B', opacity: 0.5, height: 0.12 }, // Mid mountains - dark slate blue
         { peaks: 3, color: '#6A5ACD', opacity: 0.7, height: 0.1 }, // Near mountains - slate blue
-      ]
+      ] as const
 
-      mountainLayers.forEach((layer, layerIndex) => {
+      mountainLayers.forEach(layer => {
         ctx.fillStyle = layer.color
         ctx.globalAlpha = layer.opacity
 
@@ -1054,7 +1064,8 @@ function App() {
       height: number,
     ) => {
       // Position mill in foreground along the river
-      const millX = width * 0.35 // Left side of river
+      const riverCenterX = width * 0.5 // River center
+      const millX = riverCenterX - 120 // Left side of river (120px to the left)
       const millY = height * 0.7 // In the foreground
       const millWidth = 80
       const millHeight = 60
@@ -1219,7 +1230,8 @@ function App() {
       height: number,
     ) => {
       // Position bakery near the mill
-      const bakeryX = width * 0.48 // Right of the mill
+      const riverCenterX = width * 0.5 // River center
+      const bakeryX = riverCenterX + 40 // Right side of river (40px to the right)
       const bakeryY = height * 0.72 // Slightly behind mill in foreground
       const bakeryWidth = 70
       const bakeryHeight = 55
@@ -1414,6 +1426,88 @@ function App() {
         signY + 2,
         1,
       )
+
+      // Birthday cake display outside the bakery
+      const cakeX = bakeryX
+      const cakeY = bakeryY + 110
+      const cakeWidth = 30
+      const cakeHeight = 20
+
+      // Cake base layer (yellow)
+      ctx.fillStyle = '#FFD700' // Gold/yellow
+      ctx.strokeStyle = '#FFA500' // Orange outline
+      drawSketchyRect(ctx, cakeX, cakeY, cakeWidth, cakeHeight)
+
+      // Chocolate frosting on top
+      ctx.fillStyle = '#8B4513' // Chocolate brown
+      drawSketchyRect(ctx, cakeX, cakeY - 3, cakeWidth, 6)
+
+      // Cake decorative lines
+      ctx.strokeStyle = '#FFA500'
+      ctx.lineWidth = 1
+      for (let i = 1; i < 3; i++) {
+        const lineY = cakeY + (cakeHeight / 3) * i
+        drawSketchyLine(ctx, cakeX, lineY, cakeX + cakeWidth, lineY, 3)
+      }
+
+      // Candles on the cake
+      const candleCount = 5
+      ctx.fillStyle = '#FF69B4' // Hot pink candles
+      ctx.strokeStyle = '#FF1493' // Deep pink outline
+      for (let i = 0; i < candleCount; i++) {
+        const candleX = cakeX + 5 + i * 5
+        const candleY = cakeY - 8
+        const candleWidth = 2
+        const candleHeight = 8
+
+        drawSketchyRect(ctx, candleX, candleY, candleWidth, candleHeight)
+
+        // Candle flame
+        ctx.fillStyle = '#FFA500' // Orange flame
+        drawSketchyCircle(ctx, candleX + 1, candleY - 2, 1.5, true)
+        ctx.fillStyle = '#FFFF00' // Yellow center of flame
+        drawSketchyCircle(ctx, candleX + 1, candleY - 1, 0.8, true)
+
+        ctx.fillStyle = '#FF69B4' // Reset for next candle
+      }
+
+      // "Happy Birthday!" text in cursive
+      ctx.fillStyle = '#8B4513' // Brown text
+      ctx.font = 'italic bold 10px serif' // Cursive-style font
+      ctx.textAlign = 'center'
+
+      // Create a slight curve effect for the text
+      const textX = cakeX + cakeWidth / 2
+      const textY = cakeY + cakeHeight + 15
+      // Draw the text with slight individual letter positioning for cursive effect
+      const text = 'Happy Birthday!'
+      ctx.fillText(text, textX, textY)
+
+      // Add a single decorative swirl underneath the text
+      ctx.strokeStyle = '#8B4513'
+      ctx.lineWidth = 1
+
+      // Single swirly shape underneath the text
+      ctx.beginPath()
+      ctx.moveTo(textX - 30, textY + 5)
+      // Draw a decorative curvy line
+      ctx.bezierCurveTo(
+        textX - 15,
+        textY + 1, // First control point
+        textX,
+        textY + 8, // Second control point
+        textX + 15,
+        textY + 3, // End point
+      )
+      ctx.bezierCurveTo(
+        textX + 30,
+        textY - 2, // First control point
+        textX + 40,
+        textY + 6, // Second control point
+        textX + 30,
+        textY + 8, // End point
+      )
+      ctx.stroke()
     }
 
     const drawCalicoPattern = (
@@ -1684,18 +1778,18 @@ function App() {
       ctx.fill()
 
       // Cat tail (curled around)
-      ctx.strokeStyle = '#F5F5DC'
-      ctx.lineWidth = 1
-      ctx.beginPath()
-      ctx.arc(catX + 5, catY + 2, 6, 0, Math.PI * 1.5)
-      ctx.stroke()
+      // ctx.strokeStyle = '#F5F5DC'
+      // ctx.lineWidth = 1
+      // ctx.beginPath()
+      // ctx.arc(catX + 5, catY + 2, 6, 0, Math.PI * 1.5)
+      // ctx.stroke()
 
       // Add orange patches to tail
-      ctx.strokeStyle = '#FF8C42'
-      ctx.lineWidth = 1
-      ctx.beginPath()
-      ctx.arc(catX + 5, catY + 2, 6, 0, Math.PI * 0.5)
-      ctx.stroke()
+      // ctx.strokeStyle = '#FF8C42'
+      // ctx.lineWidth = 1
+      // ctx.beginPath()
+      // ctx.arc(catX + 5, catY + 2, 6, 0, Math.PI * 0.5)
+      // ctx.stroke()
     }
 
     const drawAppleOrchard = (
