@@ -21,6 +21,9 @@ function App() {
       // Clear canvas with sketchy sky background
       drawSketchyBackground(ctx, canvas.width, canvas.height)
 
+      // Draw mountains
+      drawMountains(ctx, canvas.width, canvas.height)
+
       // Draw river
       drawRiver(ctx, canvas.width, canvas.height)
 
@@ -136,20 +139,135 @@ function App() {
       width: number,
       height: number,
     ) => {
-      // Base sky color
-      ctx.fillStyle = '#87CEEB'
-      ctx.fillRect(0, 0, width, height)
+      // Create sunset gradient for top half (horizon area)
+      const horizonY = height * 0.5
+      const sunsetGradient = ctx.createLinearGradient(0, 0, 0, horizonY)
+      sunsetGradient.addColorStop(0, '#FF6B47') // Deep orange at top
+      sunsetGradient.addColorStop(0.3, '#FF8C69') // Salmon
+      sunsetGradient.addColorStop(0.6, '#FFB347') // Peach
+      sunsetGradient.addColorStop(0.8, '#FFC0CB') // Light pink
+      sunsetGradient.addColorStop(1, '#87CEEB') // Sky blue at horizon
 
-      // Add sketchy texture with random strokes
-      ctx.strokeStyle = 'rgba(135, 206, 235, 0.3)'
+      // Fill top half with sunset
+      ctx.fillStyle = sunsetGradient
+      ctx.fillRect(0, 0, width, horizonY)
+
+      // Bottom half - keep original sky blue
+      ctx.fillStyle = '#87CEEB'
+      ctx.fillRect(0, horizonY, width, height - horizonY)
+
+      // Add sun disc
+      const sunX = width * 0.75 // Right side of sky
+      const sunY = height * 0.25 // Upper portion
+      const sunRadius = 30
+
+      ctx.fillStyle = '#FFD700' // Golden sun
+      drawSketchyCircle(ctx, sunX, sunY, sunRadius, true)
+
+      // Sun rays
+      ctx.strokeStyle = '#FFD700'
+      ctx.lineWidth = 2
+      for (let i = 0; i < 12; i++) {
+        const angle = (i * Math.PI * 2) / 12
+        const rayLength = 15 + Math.random() * 10
+        const x1 = sunX + Math.cos(angle) * (sunRadius + 5)
+        const y1 = sunY + Math.sin(angle) * (sunRadius + 5)
+        const x2 = sunX + Math.cos(angle) * (sunRadius + rayLength)
+        const y2 = sunY + Math.sin(angle) * (sunRadius + rayLength)
+        drawSketchyLine(ctx, x1, y1, x2, y2, 2)
+      }
+
+      // Add sketchy texture with sunset-appropriate colors
+      ctx.strokeStyle = 'rgba(255, 140, 105, 0.2)' // Warm sunset texture
       ctx.lineWidth = 1
-      for (let i = 0; i < 100; i++) {
+      for (let i = 0; i < 60; i++) {
         const x1 = Math.random() * width
-        const y1 = Math.random() * height * 0.6
-        const x2 = x1 + (Math.random() - 0.5) * 50
-        const y2 = y1 + (Math.random() - 0.5) * 20
+        const y1 = Math.random() * horizonY
+        const x2 = x1 + (Math.random() - 0.5) * 40
+        const y2 = y1 + (Math.random() - 0.5) * 15
         drawSketchyLine(ctx, x1, y1, x2, y2, 3)
       }
+
+      // Add some lower sky texture
+      ctx.strokeStyle = 'rgba(135, 206, 235, 0.3)'
+      for (let i = 0; i < 40; i++) {
+        const x1 = Math.random() * width
+        const y1 = horizonY + Math.random() * (height - horizonY) * 0.6
+        const x2 = x1 + (Math.random() - 0.5) * 30
+        const y2 = y1 + (Math.random() - 0.5) * 15
+        drawSketchyLine(ctx, x1, y1, x2, y2, 2)
+      }
+    }
+
+    const drawMountains = (
+      ctx: CanvasRenderingContext2D,
+      width: number,
+      height: number,
+    ) => {
+      // Mountain silhouettes in the background
+      const horizonY = height * 0.5
+      const mountainBaseY = horizonY - height * 0.1 // Mountains start above horizon
+
+      // Create multiple mountain layers for depth
+      const mountainLayers = [
+        { peaks: 5, color: '#4B0082', opacity: 0.3, height: 0.15 }, // Far mountains - purple
+        { peaks: 4, color: '#483D8B', opacity: 0.5, height: 0.12 }, // Mid mountains - dark slate blue
+        { peaks: 3, color: '#6A5ACD', opacity: 0.7, height: 0.1 },  // Near mountains - slate blue
+      ]
+
+      mountainLayers.forEach((layer, layerIndex) => {
+        ctx.fillStyle = layer.color
+        ctx.globalAlpha = layer.opacity
+
+        // Generate mountain peaks
+        const peakWidth = width / layer.peaks
+        
+        ctx.beginPath()
+        ctx.moveTo(0, mountainBaseY)
+
+        for (let i = 0; i <= layer.peaks; i++) {
+          const x = i * peakWidth
+          const peakHeight = height * layer.height * (0.8 + Math.random() * 0.4)
+          const y = mountainBaseY - peakHeight
+
+          // Add some randomness to peak positions
+          const peakX = x + (Math.random() - 0.5) * peakWidth * 0.3
+          
+          if (i === 0) {
+            ctx.lineTo(jitter(peakX, 5), jitter(y, 3))
+          } else {
+            // Create jagged mountain peaks
+            const midX = peakX - peakWidth / 2
+            const midY = mountainBaseY - peakHeight * 0.6
+            ctx.lineTo(jitter(midX, 4), jitter(midY, 4))
+            ctx.lineTo(jitter(peakX, 5), jitter(y, 3))
+          }
+        }
+
+        ctx.lineTo(width, mountainBaseY)
+        ctx.lineTo(0, mountainBaseY)
+        ctx.closePath()
+        ctx.fill()
+
+        // Add mountain ridges
+        ctx.globalAlpha = layer.opacity * 0.8
+        ctx.strokeStyle = layer.color
+        ctx.lineWidth = 1
+        for (let i = 0; i <= layer.peaks; i++) {
+          const x = i * peakWidth + (Math.random() - 0.5) * peakWidth * 0.2
+          const peakHeight = height * layer.height * (0.7 + Math.random() * 0.3)
+          const y = mountainBaseY - peakHeight
+          
+          if (i < layer.peaks) {
+            const nextX = (i + 1) * peakWidth + (Math.random() - 0.5) * peakWidth * 0.2
+            const nextPeakHeight = height * layer.height * (0.7 + Math.random() * 0.3)
+            const nextY = mountainBaseY - nextPeakHeight
+            drawSketchyLine(ctx, x, y, nextX, nextY, 3)
+          }
+        }
+      })
+
+      ctx.globalAlpha = 1.0 // Reset alpha
     }
 
     const drawRiver = (
@@ -300,36 +418,60 @@ function App() {
       width: number,
       height: number,
     ) => {
-      // Generate 100 tree positions dynamically
+      // Generate tree positions with better perspective distribution
       const treePositions = []
-      // Generate trees for both sides of the river
-      for (let i = 0; i < 100; i++) {
-        // Randomly place trees, avoiding the middle of the screen (where the river is)
-        const side = Math.random() > 0.5 ? 1 : -1 // Left or right side
-        const x = width * (0.5 + side * (0.2 + Math.random() * 0.3)) // 0.2-0.5 away from center on either side
-        // Vary the y positions for depth
-        const y = height * (0.2 + Math.random() * 0.4) // Between 0.2 and 0.6 of screen height
-        treePositions.push({ x, y })
+      
+      // Background trees (smaller, behind mountains)
+      for (let i = 0; i < 30; i++) {
+        const side = Math.random() > 0.5 ? 1 : -1
+        const x = width * (0.5 + side * (0.15 + Math.random() * 0.25))
+        const y = height * (0.15 + Math.random() * 0.15) // Behind mountains
+        const scale = 0.3 + Math.random() * 0.2 // Very small trees
+        treePositions.push({ x, y, scale, layer: 'background' })
+      }
+      
+      // Middle distance trees
+      for (let i = 0; i < 40; i++) {
+        const side = Math.random() > 0.5 ? 1 : -1
+        const x = width * (0.5 + side * (0.18 + Math.random() * 0.3))
+        const y = height * (0.3 + Math.random() * 0.25) // Middle distance
+        const scale = 0.6 + Math.random() * 0.3
+        treePositions.push({ x, y, scale, layer: 'middle' })
+      }
+      
+      // Foreground trees (largest)
+      for (let i = 0; i < 30; i++) {
+        const side = Math.random() > 0.5 ? 1 : -1
+        const x = width * (0.5 + side * (0.25 + Math.random() * 0.35))
+        const y = height * (0.55 + Math.random() * 0.35) // Foreground
+        const scale = 1.2 + Math.random() * 0.8 // Large trees
+        treePositions.push({ x, y, scale, layer: 'foreground' })
       }
 
       // Sort trees by y-coordinate (from background to foreground)
       treePositions.sort((a, b) => a.y - b.y)
 
       treePositions.forEach(pos => {
+        // Scale trunk based on perspective
+        const trunkWidth = 16 * pos.scale
+        const trunkHeight = 40 * pos.scale
+        
         // Sketchy tree trunk
         ctx.fillStyle = '#8B4513'
         ctx.strokeStyle = '#654321'
-        drawSketchyRect(ctx, pos.x - 8, pos.y, 16, 40)
+        drawSketchyRect(ctx, pos.x - trunkWidth/2, pos.y, trunkWidth, trunkHeight)
 
-        // Add some bark texture
+        // Add bark texture scaled appropriately
         ctx.strokeStyle = '#654321'
-        ctx.lineWidth = 1
-        for (let i = 0; i < 5; i++) {
-          const y = pos.y + i * 8 + 5
-          drawSketchyLine(ctx, pos.x - 6, y, pos.x + 6, y, 3)
+        ctx.lineWidth = Math.max(0.5, 1 * pos.scale)
+        const barkLines = Math.floor(5 * pos.scale)
+        for (let i = 0; i < barkLines; i++) {
+          const y = pos.y + i * (trunkHeight / barkLines) + 5
+          const barkWidth = trunkWidth * 0.8
+          drawSketchyLine(ctx, pos.x - barkWidth/2, y, pos.x + barkWidth/2, y, 3)
         }
 
-        // Draw sketchy pine tree foliage with triangles
+        // Draw sketchy pine tree foliage with triangles - scaled
         const drawSketchyTriangle = (
           x: number,
           y: number,
@@ -346,8 +488,8 @@ function App() {
             ctx.fill()
           }
 
-          // Draw sketchy outline
-          ctx.lineWidth = 2
+          // Draw sketchy outline with scaled line width
+          ctx.lineWidth = Math.max(1, 2 * pos.scale)
           drawSketchyLine(ctx, x, y, x - width / 2, y + height, 4)
           drawSketchyLine(
             ctx,
@@ -360,18 +502,47 @@ function App() {
           drawSketchyLine(ctx, x + width / 2, y + height, x, y, 4)
         }
 
-        // Multiple layers of pine tree triangles
-        ctx.fillStyle = '#006400' // Dark green
-        ctx.strokeStyle = '#005000'
-        drawSketchyTriangle(pos.x, pos.y - 55, 50, 30)
+        // Multiple layers of pine tree triangles - all scaled
+        const baseWidth = 50 * pos.scale
+        const baseHeight = 30 * pos.scale
+        
+        // Adjust colors based on distance (darker for background, brighter for foreground)
+        let darkGreen, forestGreen, seaGreen, darkStroke, forestStroke, seaStroke
+        
+        if (pos.layer === 'background') {
+          darkGreen = '#003300'
+          forestGreen = '#004400'
+          seaGreen = '#005500'
+          darkStroke = '#002200'
+          forestStroke = '#003300'
+          seaStroke = '#004400'
+        } else if (pos.layer === 'middle') {
+          darkGreen = '#004400'
+          forestGreen = '#116611'
+          seaGreen = '#227722'
+          darkStroke = '#003300'
+          forestStroke = '#004400'
+          seaStroke = '#116611'
+        } else {
+          darkGreen = '#006400'
+          forestGreen = '#228B22'
+          seaGreen = '#2E8B57'
+          darkStroke = '#005000'
+          forestStroke = '#006400'
+          seaStroke = '#228B22'
+        }
 
-        ctx.fillStyle = '#228B22' // Forest green
-        ctx.strokeStyle = '#006400'
-        drawSketchyTriangle(pos.x, pos.y - 35, 60, 35)
+        ctx.fillStyle = darkGreen
+        ctx.strokeStyle = darkStroke
+        drawSketchyTriangle(pos.x, pos.y - 55 * pos.scale, baseWidth, baseHeight)
 
-        ctx.fillStyle = '#2E8B57' // Sea green
-        ctx.strokeStyle = '#228B22'
-        drawSketchyTriangle(pos.x, pos.y - 15, 70, 40)
+        ctx.fillStyle = forestGreen
+        ctx.strokeStyle = forestStroke
+        drawSketchyTriangle(pos.x, pos.y - 35 * pos.scale, baseWidth * 1.2, baseHeight * 1.17)
+
+        ctx.fillStyle = seaGreen
+        ctx.strokeStyle = seaStroke
+        drawSketchyTriangle(pos.x, pos.y - 15 * pos.scale, baseWidth * 1.4, baseHeight * 1.33)
 
         // Add some sketchy pine needle details
         // ctx.strokeStyle = '#32CD32' // Lime green
@@ -437,10 +608,10 @@ function App() {
       let attempts = 0
 
       while (buildings.length < 10 && attempts < maxAttempts) {
-        // Position buildings on the right side of the screen (0.4-0.8 of width)
-        const x = width * (0.4 + Math.random() * 0.4)
-        // Vary the y positions for depth (0.05-0.25 of height)
-        const y = height * (0.05 + Math.random() * 0.2)
+        // Position buildings on the right side of the screen (0.55-0.9 of width) - moved towards foreground
+        const x = width * (0.55 + Math.random() * 0.35)
+        // Vary the y positions for depth (0.4-0.65 of height) - moved down towards foreground
+        const y = height * (0.4 + Math.random() * 0.25)
         // Vary building sizes
         const buildingWidth = 40 + Math.random() * 60
         const buildingHeight = 60 + Math.random() * 80
@@ -599,9 +770,9 @@ function App() {
       }
 
       while (cabins.length < 6 && attempts < maxAttempts) {
-        // Position cabins on the left side of the screen
-        const x = width * (0.05 + Math.random() * 0.3)
-        const y = height * (0.1 + Math.random() * 0.15)
+        // Position cabins on the left side of the screen - moved towards foreground
+        const x = width * (0.05 + Math.random() * 0.25)
+        const y = height * (0.45 + Math.random() * 0.25) // Moved down towards foreground
         const cabinWidth = 50 + Math.random() * 100
         const cabinHeight = 40 + Math.random() * 20
 
