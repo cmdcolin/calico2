@@ -117,6 +117,7 @@ function App() {
       y: number,
       radius: number,
       fill: boolean = true,
+      amount: number = 1,
     ) => {
       const points = 16
       const angleStep = (Math.PI * 2) / points
@@ -125,8 +126,8 @@ function App() {
         ctx.beginPath()
         for (let i = 0; i <= points; i++) {
           const angle = i * angleStep
-          const px = x + Math.cos(angle) * jitter(radius)
-          const py = y + Math.sin(angle) * jitter(radius)
+          const px = x + Math.cos(angle) * jitter(radius, amount)
+          const py = y + Math.sin(angle) * jitter(radius, amount)
           if (i === 0) {
             ctx.moveTo(px, py)
           } else {
@@ -138,18 +139,18 @@ function App() {
       }
 
       // Draw sketchy outline
-      ctx.beginPath()
-      for (let i = 0; i <= points; i++) {
-        const angle = i * angleStep
-        const px = x + Math.cos(angle) * jitter(radius)
-        const py = y + Math.sin(angle) * jitter(radius)
-        if (i === 0) {
-          ctx.moveTo(px, py)
-        } else {
-          ctx.lineTo(px, py)
-        }
-      }
-      ctx.stroke()
+      // ctx.beginPath()
+      // for (let i = 0; i <= points; i++) {
+      //   const angle = i * angleStep
+      //   const px = x + Math.cos(angle) * jitter(radius, amount)
+      //   const py = y + Math.sin(angle) * jitter(radius, amount)
+      //   if (i === 0) {
+      //     ctx.moveTo(px, py)
+      //   } else {
+      //     ctx.lineTo(px, py)
+      //   }
+      // }
+      // ctx.stroke()
     }
 
     const drawSketchyBackground = (
@@ -970,13 +971,13 @@ function App() {
         drawSketchyRect(ctx, chimneyX, chimneyY, 8, 20)
 
         // Smoke puffs
-        for (let i = 0; i < 4; i++) {
+        for (let i = 0; i < 10; i++) {
           const puffY = chimneyY - i * 15 - 10
           const drift = Math.sin(i * 0.8 + index) * 8 + i * 3
           const puffSize = 4 + i * 2
 
           ctx.fillStyle = `rgba(211, 211, 211, ${0.7 - i * 0.15})`
-          drawSketchyCircle(ctx, chimneyX + drift, puffY, puffSize, true)
+          drawSketchyCircle(ctx, chimneyX + drift, puffY, puffSize, true, 4)
         }
 
         // Standard rectangular door and windows for other types
@@ -1293,7 +1294,7 @@ function App() {
         const puffSize = 3 + i * 1.5
 
         ctx.fillStyle = `rgba(240, 240, 240, ${0.8 - i * 0.12})`
-        drawSketchyCircle(ctx, chimneyX + drift, puffY, puffSize, true)
+        drawSketchyCircle(ctx, chimneyX + drift, puffY, puffSize, true, 4)
       }
 
       // Large bakery window
@@ -1519,7 +1520,7 @@ function App() {
         const puffSize = 4 + i * 2
 
         ctx.fillStyle = `rgba(220, 220, 220, ${0.8 - i * 0.1})`
-        drawSketchyCircle(ctx, chimneyX + drift, puffY, puffSize, true)
+        drawSketchyCircle(ctx, chimneyX + drift, puffY, puffSize, true, 4)
       }
 
       // Front door
@@ -1867,20 +1868,20 @@ function App() {
       const shopWidth = 60
       const shopHeight = 45
 
-      // Ice cream shop building - pastel colors
-      ctx.fillStyle = '#FFE4E1' // Misty rose
-      ctx.strokeStyle = '#DDA0DD'
+      // Ice cream shop building - brown wood panels
+      ctx.fillStyle = '#8B4513' // Saddle brown
+      ctx.strokeStyle = '#654321'
       drawSketchyRect(ctx, shopX, shopY, shopWidth, shopHeight)
 
-      // Sweet shop texture with horizontal lines
-      ctx.strokeStyle = '#DDA0DD'
+      // Wood panel texture with horizontal lines
+      ctx.strokeStyle = '#654321'
       ctx.lineWidth = 1
       for (let y = shopY + 8; y < shopY + shopHeight; y += 8) {
         drawSketchyLine(ctx, shopX, y, shopX + shopWidth, y, 4)
       }
 
-      // Pastel roof - mint green
-      ctx.fillStyle = '#98FB98'
+      // Wood roof - darker brown
+      ctx.fillStyle = '#654321'
       const roofHeight = 18
       ctx.beginPath()
       ctx.moveTo(jitter(shopX - 5), jitter(shopY))
@@ -1890,7 +1891,7 @@ function App() {
       ctx.fill()
 
       // Roof outline
-      ctx.strokeStyle = '#90EE90'
+      ctx.strokeStyle = '#4A2C2A'
       ctx.lineWidth = 2
       drawSketchyLine(
         ctx,
@@ -1929,7 +1930,7 @@ function App() {
       drawSketchyCircle(ctx, coneX, coneY - 1, 3, true)
 
       // Shop window
-      ctx.fillStyle = '#F0F8FF' // Alice blue
+      ctx.fillStyle = '#FFE4B5' // Warm window light
       const windowWidth = 20
       const windowHeight = 15
       const windowX = shopX + 8
@@ -1937,7 +1938,7 @@ function App() {
       drawSketchyRect(ctx, windowX, windowY, windowWidth, windowHeight)
 
       // Window cross pattern
-      ctx.strokeStyle = '#DDA0DD'
+      ctx.strokeStyle = '#654321'
       ctx.lineWidth = 1
       drawSketchyLine(
         ctx,
@@ -1962,7 +1963,7 @@ function App() {
       const doorX = shopX + shopWidth - doorWidth - 5
       const doorY = shopY + shopHeight - doorHeight
 
-      ctx.fillStyle = '#E6E6FA' // Lavender
+      ctx.fillStyle = '#8B4513' // Brown wood door
       drawSketchyRect(ctx, doorX, doorY, doorWidth, doorHeight)
 
       // Door handle
@@ -1976,8 +1977,8 @@ function App() {
       const signHeight = 10
 
       // Sign board
-      ctx.fillStyle = '#FFFAF0' // Floral white
-      ctx.strokeStyle = '#DDA0DD'
+      ctx.fillStyle = '#DEB887' // Burlywood
+      ctx.strokeStyle = '#8B7355'
       drawSketchyRect(ctx, signX, signY, signWidth, signHeight)
 
       // Sign text "Maple Ice Cream"
@@ -2028,8 +2029,8 @@ function App() {
       drawSketchyRect(ctx, signPostX, signPostY, 9, postHeight)
 
       // Sign board
-      ctx.fillStyle = '#FFFAF0' // Floral white
-      ctx.strokeStyle = '#DDA0DD'
+      ctx.fillStyle = '#DEB887' // Burlywood
+      ctx.strokeStyle = '#8B7355'
       ctx.lineWidth = 2
       drawSketchyRect(
         ctx,
