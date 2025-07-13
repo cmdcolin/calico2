@@ -42,6 +42,12 @@ function App() {
       // Draw bakery
       drawBakery(ctx, canvas.width, canvas.height)
 
+      // Draw apple orchard
+      drawAppleOrchard(ctx, canvas.width, canvas.height)
+
+      // Draw ice cream shop
+      drawIceCreamShop(ctx, canvas.width, canvas.height)
+
       // Draw large house
       // Draw large house
       ctx.save()
@@ -50,7 +56,7 @@ function App() {
       ctx.restore()
     }
 
-    const jitter = (value: number, amount: number = 2) => {
+    const jitter = (value: number, amount: number = 1) => {
       return value + (Math.random() - 0.5) * amount
     }
 
@@ -60,7 +66,8 @@ function App() {
       y1: number,
       x2: number,
       y2: number,
-      segments: number = 8,
+      segments: number = 16,
+      amount = 1,
     ) => {
       ctx.beginPath()
       ctx.moveTo(jitter(x1), jitter(y1))
@@ -69,7 +76,7 @@ function App() {
         const t = i / segments
         const x = x1 + (x2 - x1) * t
         const y = y1 + (y2 - y1) * t
-        ctx.lineTo(jitter(x, 3), jitter(y, 3))
+        ctx.lineTo(jitter(x, amount), jitter(y, amount))
       }
       ctx.stroke()
     }
@@ -81,19 +88,23 @@ function App() {
       width: number,
       height: number,
       fill: boolean = true,
+      jitterAmount: number = 1,
     ) => {
       if (fill) {
         ctx.beginPath()
-        ctx.moveTo(jitter(x), jitter(y))
-        ctx.lineTo(jitter(x + width), jitter(y))
-        ctx.lineTo(jitter(x + width), jitter(y + height))
-        ctx.lineTo(jitter(x), jitter(y + height))
+        ctx.moveTo(jitter(x, jitterAmount), jitter(y, jitterAmount))
+        ctx.lineTo(jitter(x + width, jitterAmount), jitter(y, jitterAmount))
+        ctx.lineTo(
+          jitter(x + width, jitterAmount),
+          jitter(y + height, jitterAmount),
+        )
+        ctx.lineTo(jitter(x, jitterAmount), jitter(y + height, jitterAmount))
         ctx.closePath()
         ctx.fill()
       }
 
       // Draw sketchy outline
-      ctx.lineWidth = 2
+      ctx.lineWidth = 1
       drawSketchyLine(ctx, x, y, x + width, y)
       drawSketchyLine(ctx, x + width, y, x + width, y + height)
       drawSketchyLine(ctx, x + width, y + height, x, y + height)
@@ -114,8 +125,8 @@ function App() {
         ctx.beginPath()
         for (let i = 0; i <= points; i++) {
           const angle = i * angleStep
-          const px = x + Math.cos(angle) * jitter(radius, 3)
-          const py = y + Math.sin(angle) * jitter(radius, 3)
+          const px = x + Math.cos(angle) * jitter(radius)
+          const py = y + Math.sin(angle) * jitter(radius)
           if (i === 0) {
             ctx.moveTo(px, py)
           } else {
@@ -130,8 +141,8 @@ function App() {
       ctx.beginPath()
       for (let i = 0; i <= points; i++) {
         const angle = i * angleStep
-        const px = x + Math.cos(angle) * jitter(radius, 2)
-        const py = y + Math.sin(angle) * jitter(radius, 2)
+        const px = x + Math.cos(angle) * jitter(radius)
+        const py = y + Math.sin(angle) * jitter(radius)
         if (i === 0) {
           ctx.moveTo(px, py)
         } else {
@@ -362,9 +373,9 @@ function App() {
         0,
         riverEndY,
       )
-      riverGradient.addColorStop(0, '#4682B4')
-      riverGradient.addColorStop(0.8, '#87CEEB')
-      riverGradient.addColorStop(1, '#B0C4DE')
+      riverGradient.addColorStop(0, '#2B5F82') // Darker steel blue
+      riverGradient.addColorStop(0.8, '#4682B4') // Steel blue
+      riverGradient.addColorStop(1, '#2425aD') // Cornflower blue
 
       ctx.fillStyle = riverGradient
       ctx.beginPath()
@@ -427,26 +438,52 @@ function App() {
 
         ctx.lineWidth = lineWidth
 
-        // Draw horizontal ripples across the river
-        drawSketchyLine(
-          ctx,
-          centerX - currentWidth / 3,
-          y,
-          centerX + currentWidth / 3,
-          y,
-          3,
-        )
+        // Create wave-like ripples across the river
+        const waveWidth = currentWidth / 3
+        const waveStartX = centerX - waveWidth
+        const waveEndX = centerX + waveWidth
 
-        // Add some diagonal flow lines
-        if (Math.random() > 0.7) {
-          drawSketchyLine(
-            ctx,
-            centerX - rippleSize,
-            y - 5,
-            centerX + rippleSize,
-            y + 5,
-            2,
+        // // Draw wavy pattern instead of straight line
+        // ctx.beginPath()
+        // ctx.moveTo(waveStartX, y)
+        //
+        // const waveCount = Math.floor(3 + Math.random() * 3) // Variable number of waves
+        // const waveAmplitude = 2 + Math.random() * 3 // Variable wave height
+        //
+        // for (let i = 0; i <= waveCount; i++) {
+        //   const waveX = waveStartX + (waveEndX - waveStartX) * (i / waveCount)
+        //   const waveY =
+        //     y +
+        //     Math.sin(i * Math.PI) * waveAmplitude * (Math.random() * 0.5 + 0.75)
+        //
+        //   // Create wave crest/trough effect
+        //   if (i === 0) {
+        //     ctx.lineTo(waveX, waveY)
+        //   } else {
+        //     const cpX1 =
+        //       waveStartX + (waveEndX - waveStartX) * ((i - 0.5) / waveCount)
+        //     const cpY1 = y + Math.sin((i - 0.5) * Math.PI) * waveAmplitude * 1.5
+        //     ctx.quadraticCurveTo(cpX1, cpY1, waveX, waveY)
+        //   }
+        // }
+        // ctx.stroke()
+
+        // Add some smaller wave details
+        if (Math.random() > 0.5) {
+          const detailX = centerX + (Math.random() - 0.5) * waveWidth
+          const detailY = y + (Math.random() - 0.5) * 4
+          const detailSize = rippleSize * 0.4
+
+          // Create small curved wave detail
+          ctx.beginPath()
+          ctx.moveTo(detailX - detailSize, detailY)
+          ctx.quadraticCurveTo(
+            detailX,
+            detailY - 2 - Math.random() * 2,
+            detailX + detailSize,
+            detailY,
           )
+          ctx.stroke()
         }
       }
 
@@ -500,7 +537,8 @@ function App() {
       const mountainBaseY = horizonY - height * 0.1
 
       for (let i = 0; i < 1000; i++) {
-        const x = width * Math.random()
+        const side = Math.random() > 0.5 ? 1 : -1
+        const x = width * (0.5 + side * (0.05 + Math.random()))
 
         // Calculate maximum tree height to not exceed mountain base
         const treeScale = 0.1 + Math.random() * 0.2
@@ -515,16 +553,17 @@ function App() {
 
       // Middle distance trees
       for (let i = 0; i < 40; i++) {
-        const x = width * Math.random()
+        const side = Math.random() > 0.5 ? 1 : -1
+        const x = width * (0.5 + side * (0.1 + Math.random()))
         const y = height * (0.6 + Math.random() * 0.15) // Middle distance
         const scale = 0.6 + Math.random() * 0.3
         treePositions.push({ x, y, scale, layer: 'middle' })
       }
 
       // Foreground trees (largest)
-      for (let i = 0; i < 30; i++) {
+      for (let i = 0; i < 40; i++) {
         const side = Math.random() > 0.5 ? 1 : -1
-        const x = width * (0.5 + side * (0.25 + Math.random() * 0.35))
+        const x = width * (0.5 + side * (0.15 + Math.random()))
         const y = height * (0.85 + Math.random() * 0.15) // Foreground
         const scale = 0.5 + Math.random() * 0.8 // Large trees
         treePositions.push({ x, y, scale, layer: 'foreground' })
@@ -1530,18 +1569,19 @@ function App() {
       const leftWindowY = houseY + 25
       const windowWidth = 25
       const windowHeight = 20
+      ctx.lineWidth = 1
       drawSketchyRect(ctx, leftWindowX, leftWindowY, windowWidth, windowHeight)
 
       // Window cross pattern
       ctx.strokeStyle = '#654321'
-      ctx.lineWidth = 2
+      ctx.lineWidth = 1.5
       drawSketchyLine(
         ctx,
         leftWindowX + windowWidth / 2,
         leftWindowY,
         leftWindowX + windowWidth / 2,
         leftWindowY + windowHeight,
-        2,
+        1,
       )
       drawSketchyLine(
         ctx,
@@ -1549,7 +1589,7 @@ function App() {
         leftWindowY + windowHeight / 2,
         leftWindowX + windowWidth,
         leftWindowY + windowHeight / 2,
-        2,
+        1,
       )
 
       // Right window with calico cat
@@ -1571,6 +1611,7 @@ function App() {
         rightWindowX + windowWidth / 2,
         rightWindowY + windowHeight,
         2,
+        1,
       )
       drawSketchyLine(
         ctx,
@@ -1579,22 +1620,26 @@ function App() {
         rightWindowX + windowWidth,
         rightWindowY + windowHeight / 2,
         2,
+        1,
       )
 
       // Calico cat in right window
       const catX = rightWindowX + windowWidth / 2
       const catY = rightWindowY + windowHeight / 2 + 3
-
       // Cat body (curled up sleeping position)
       ctx.fillStyle = '#F5F5DC' // Beige base
-      drawSketchyCircle(ctx, catX, catY, 8, true)
+      ctx.beginPath()
+      ctx.arc(catX, catY, 8, 0, Math.PI * 2)
+      ctx.fill()
 
       // Add calico pattern
       drawCalicoPattern(ctx, catX - 8, catY - 8, 16, 16)
 
       // Cat head
       ctx.fillStyle = '#F5F5DC'
-      drawSketchyCircle(ctx, catX - 3, catY - 5, 5, true)
+      ctx.beginPath()
+      ctx.arc(catX - 3, catY - 5, 5, 0, Math.PI * 2)
+      ctx.fill()
 
       // Add calico pattern to head
       drawCalicoPattern(ctx, catX - 8, catY - 10, 10, 10)
@@ -1602,47 +1647,434 @@ function App() {
       // Cat ears
       ctx.fillStyle = '#F5F5DC'
       ctx.beginPath()
-      ctx.moveTo(jitter(catX - 6), jitter(catY - 8))
-      ctx.lineTo(jitter(catX - 4), jitter(catY - 11))
-      ctx.lineTo(jitter(catX - 2), jitter(catY - 8))
+      ctx.moveTo(catX - 6, catY - 8)
+      ctx.lineTo(catX - 4, catY - 11)
+      ctx.lineTo(catX - 2, catY - 8)
       ctx.closePath()
       ctx.fill()
 
       ctx.beginPath()
-      ctx.moveTo(jitter(catX + 1), jitter(catY - 8))
-      ctx.lineTo(jitter(catX + 3), jitter(catY - 11))
-      ctx.lineTo(jitter(catX + 5), jitter(catY - 8))
+      ctx.moveTo(catX + 1, catY - 8)
+      ctx.lineTo(catX + 3, catY - 11)
+      ctx.lineTo(catX + 5, catY - 8)
       ctx.closePath()
       ctx.fill()
 
       // Cat eyes (closed - sleeping)
       ctx.strokeStyle = '#2F2F2F'
       ctx.lineWidth = 1
-      drawSketchyLine(ctx, catX - 5, catY - 6, catX - 3, catY - 6, 1)
-      drawSketchyLine(ctx, catX - 1, catY - 6, catX + 1, catY - 6, 1)
+      ctx.beginPath()
+      ctx.moveTo(catX - 5, catY - 6)
+      ctx.lineTo(catX - 3, catY - 6)
+      ctx.stroke()
+
+      ctx.beginPath()
+      ctx.moveTo(catX - 1, catY - 6)
+      ctx.lineTo(catX + 1, catY - 6)
+      ctx.stroke()
 
       // Cat nose
       ctx.fillStyle = '#FFB6C1'
       ctx.beginPath()
-      ctx.moveTo(jitter(catX - 1), jitter(catY - 4))
-      ctx.lineTo(jitter(catX), jitter(catY - 5))
-      ctx.lineTo(jitter(catX + 1), jitter(catY - 4))
+      ctx.moveTo(catX - 1, catY - 4)
+      ctx.lineTo(catX, catY - 5)
+      ctx.lineTo(catX + 1, catY - 4)
       ctx.closePath()
       ctx.fill()
 
       // Cat tail (curled around)
       ctx.strokeStyle = '#F5F5DC'
-      ctx.lineWidth = 3
+      ctx.lineWidth = 1
       ctx.beginPath()
       ctx.arc(catX + 5, catY + 2, 6, 0, Math.PI * 1.5)
       ctx.stroke()
 
       // Add orange patches to tail
       ctx.strokeStyle = '#FF8C42'
-      ctx.lineWidth = 2
+      ctx.lineWidth = 1
       ctx.beginPath()
       ctx.arc(catX + 5, catY + 2, 6, 0, Math.PI * 0.5)
       ctx.stroke()
+    }
+
+    const drawAppleOrchard = (
+      ctx: CanvasRenderingContext2D,
+      width: number,
+      height: number,
+    ) => {
+      // Position orchard on mountain slope - right side mountain, middle distance
+      const orchardCenterX = width * 0.95
+      const orchardCenterY = height * 0.35
+      const orchardSpread = 180
+
+      // Generate apple tree positions in a rough grid pattern
+      const appleTreePositions = []
+      const rows = 2
+      const treesPerRow = 8
+
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < treesPerRow; col++) {
+          const x =
+            orchardCenterX -
+            orchardSpread / 2 +
+            (col / (treesPerRow - 1)) * orchardSpread +
+            (Math.random() - 0.5) * 20
+          const y = orchardCenterY + row * 15 + (Math.random() - 0.5) * 8
+          const scale = 0.3 + Math.random() * 0.2 // Small trees on mountain slope
+          appleTreePositions.push({ x, y, scale })
+        }
+      }
+
+      // Draw apple trees
+      appleTreePositions.forEach(pos => {
+        // Apple tree trunk - thinner than pine trees
+        const trunkWidth = 8 * pos.scale
+        const trunkHeight = 25 * pos.scale
+
+        ctx.fillStyle = '#8B4513'
+        ctx.strokeStyle = '#654321'
+        drawSketchyRect(
+          ctx,
+          pos.x - trunkWidth / 2,
+          pos.y,
+          trunkWidth,
+          trunkHeight,
+        )
+
+        // Apple tree crown - rounded, not triangular like pines
+        const crownRadius = 20 * pos.scale
+        const crownY = pos.y - trunkHeight + 5
+
+        // Main foliage mass
+        ctx.fillStyle = '#228B22' // Forest green
+        ctx.strokeStyle = '#006400'
+        drawSketchyCircle(ctx, pos.x, crownY, crownRadius, true)
+
+        // Add additional foliage clumps for more natural look
+        const clumpCount = 3 + Math.floor(Math.random() * 3)
+        for (let i = 0; i < clumpCount; i++) {
+          const angle = (i / clumpCount) * Math.PI * 2 + Math.random() * 0.5
+          const clumpX = pos.x + Math.cos(angle) * (crownRadius * 0.6)
+          const clumpY = crownY + Math.sin(angle) * (crownRadius * 0.6)
+          const clumpSize = (8 + Math.random() * 8) * pos.scale
+
+          ctx.fillStyle = '#228B22' // Alternate greens
+          drawSketchyCircle(ctx, clumpX, clumpY, clumpSize, true)
+        }
+
+        // Add apples - red dots scattered in the foliage
+        const appleCount = Math.floor(12 * pos.scale + Math.random() * 8)
+        ctx.fillStyle = '#DC143C' // Crimson red apples
+        ctx.strokeStyle = '#DC143C' // Crimson red apples
+
+        for (let i = 0; i < appleCount; i++) {
+          const angle = Math.random() * Math.PI * 2
+          const distance = Math.random() * crownRadius * 0.8
+          const appleX = pos.x + Math.cos(angle) * distance
+          const appleY = crownY + Math.sin(angle) * distance
+          const appleSize = 1 //(3 + Math.random() * 2) * pos.scale // Larger apples
+
+          ctx.fillRect(appleX, appleY, 1, 1)
+
+          // Add larger, more prominent highlight to apple
+          // ctx.fillStyle = '#FF6B6B'
+          // const highlightSize = appleSize * 0.6
+          // drawSketchyCircle(
+          //   ctx,
+          //   appleX - highlightSize / 3,
+          //   appleY - highlightSize / 3,
+          //   highlightSize,
+          //   true,
+          // )
+
+          // Add second smaller highlight for more dimension
+          // ctx.fillStyle = '#FFB6C1'
+          // const smallHighlight = appleSize * 0.3
+          // drawSketchyCircle(
+          //   ctx,
+          //   appleX - smallHighlight / 2,
+          //   appleY - smallHighlight / 2,
+          //   smallHighlight,
+          //   true,
+          // )
+
+          ctx.fillStyle = '#DC143C' // Reset to red for next apple
+        }
+
+        // Occasionally add some apples on the ground
+        // if (Math.random() > 0.6) {
+        //   const groundApples = 2 + Math.floor(Math.random() * 4)
+        //   for (let i = 0; i < groundApples; i++) {
+        //     const groundX = pos.x + (Math.random() - 0.5) * crownRadius * 1.5
+        //     const groundY = pos.y + 2 + Math.random() * 3
+        //     const groundAppleSize = (2 + Math.random() * 1) * pos.scale // Larger ground apples
+        //
+        //     ctx.fillStyle = '#B22222' // Darker red for ground apples
+        //     drawSketchyCircle(ctx, groundX, groundY, groundAppleSize, true)
+        //
+        //     // Add highlight to ground apples too
+        //     ctx.fillStyle = '#CD5C5C'
+        //     const groundHighlight = groundAppleSize * 0.4
+        //     drawSketchyCircle(
+        //       ctx,
+        //       groundX - groundHighlight / 2,
+        //       groundY - groundHighlight / 2,
+        //       groundHighlight,
+        //       true,
+        //     )
+        //   }
+        // }
+      })
+
+      // Add a small wooden sign for the orchard
+      const signX = orchardCenterX - orchardSpread / 2 - 15
+      const signY = orchardCenterY + 30
+      const signWidth = 30
+      const signHeight = 8
+
+      // Sign post
+      ctx.strokeStyle = '#654321'
+      ctx.lineWidth = 2
+      drawSketchyLine(
+        ctx,
+        signX + signWidth / 2,
+        signY + signHeight,
+        signX + signWidth / 2,
+        signY + signHeight + 15,
+        2,
+      )
+
+      // Sign board
+      ctx.fillStyle = '#DEB887'
+      ctx.strokeStyle = '#8B7355'
+      drawSketchyRect(ctx, signX, signY, signWidth, signHeight)
+
+      // Sign text
+      ctx.fillStyle = '#654321'
+      ctx.font = '6px serif'
+      ctx.textAlign = 'center'
+      ctx.fillText('Apple Orchard', signX + signWidth / 2, signY + 6)
+    }
+
+    const drawIceCreamShop = (
+      ctx: CanvasRenderingContext2D,
+      width: number,
+      height: number,
+    ) => {
+      // Position ice cream shop on the mountain slope - left side mountain
+      const shopX = width * 0.15
+      const shopY = height * 0.32 // On mountain slope
+      const shopWidth = 60
+      const shopHeight = 45
+
+      // Ice cream shop building - pastel colors
+      ctx.fillStyle = '#FFE4E1' // Misty rose
+      ctx.strokeStyle = '#DDA0DD'
+      drawSketchyRect(ctx, shopX, shopY, shopWidth, shopHeight)
+
+      // Sweet shop texture with horizontal lines
+      ctx.strokeStyle = '#DDA0DD'
+      ctx.lineWidth = 1
+      for (let y = shopY + 8; y < shopY + shopHeight; y += 8) {
+        drawSketchyLine(ctx, shopX, y, shopX + shopWidth, y, 4)
+      }
+
+      // Pastel roof - mint green
+      ctx.fillStyle = '#98FB98'
+      const roofHeight = 18
+      ctx.beginPath()
+      ctx.moveTo(jitter(shopX - 5), jitter(shopY))
+      ctx.lineTo(jitter(shopX + shopWidth / 2), jitter(shopY - roofHeight))
+      ctx.lineTo(jitter(shopX + shopWidth + 5), jitter(shopY))
+      ctx.closePath()
+      ctx.fill()
+
+      // Roof outline
+      ctx.strokeStyle = '#90EE90'
+      ctx.lineWidth = 2
+      drawSketchyLine(
+        ctx,
+        shopX - 5,
+        shopY,
+        shopX + shopWidth / 2,
+        shopY - roofHeight,
+        3,
+      )
+      drawSketchyLine(
+        ctx,
+        shopX + shopWidth / 2,
+        shopY - roofHeight,
+        shopX + shopWidth + 5,
+        shopY,
+        3,
+      )
+
+      // Ice cream cone decoration on roof
+      const coneX = shopX + shopWidth / 2
+      const coneY = shopY - roofHeight / 2
+
+      // Cone
+      ctx.fillStyle = '#DEB887'
+      ctx.beginPath()
+      ctx.moveTo(jitter(coneX - 4), jitter(coneY + 5))
+      ctx.lineTo(jitter(coneX + 4), jitter(coneY + 5))
+      ctx.lineTo(jitter(coneX), jitter(coneY + 12))
+      ctx.closePath()
+      ctx.fill()
+
+      // Ice cream scoops
+      ctx.fillStyle = '#FFB6C1' // Pink scoop
+      drawSketchyCircle(ctx, coneX, coneY + 2, 3, true)
+      ctx.fillStyle = '#FFFACD' // Lemon chiffon scoop
+      drawSketchyCircle(ctx, coneX, coneY - 1, 3, true)
+
+      // Shop window
+      ctx.fillStyle = '#F0F8FF' // Alice blue
+      const windowWidth = 20
+      const windowHeight = 15
+      const windowX = shopX + 8
+      const windowY = shopY + 12
+      drawSketchyRect(ctx, windowX, windowY, windowWidth, windowHeight)
+
+      // Window cross pattern
+      ctx.strokeStyle = '#DDA0DD'
+      ctx.lineWidth = 1
+      drawSketchyLine(
+        ctx,
+        windowX + windowWidth / 2,
+        windowY,
+        windowX + windowWidth / 2,
+        windowY + windowHeight,
+        2,
+      )
+      drawSketchyLine(
+        ctx,
+        windowX,
+        windowY + windowHeight / 2,
+        windowX + windowWidth,
+        windowY + windowHeight / 2,
+        2,
+      )
+
+      // Door
+      const doorWidth = 12
+      const doorHeight = 20
+      const doorX = shopX + shopWidth - doorWidth - 5
+      const doorY = shopY + shopHeight - doorHeight
+
+      ctx.fillStyle = '#E6E6FA' // Lavender
+      drawSketchyRect(ctx, doorX, doorY, doorWidth, doorHeight)
+
+      // Door handle
+      ctx.fillStyle = '#FFD700'
+      drawSketchyCircle(ctx, doorX + 3, doorY + doorHeight / 2, 1.5, false)
+
+      // Sign for "Maple Ice Cream"
+      const signX = shopX + shopWidth / 2 - 30
+      const signY = shopY - 8
+      const signWidth = 60
+      const signHeight = 10
+
+      // Sign board
+      ctx.fillStyle = '#FFFAF0' // Floral white
+      ctx.strokeStyle = '#DDA0DD'
+      drawSketchyRect(ctx, signX, signY, signWidth, signHeight)
+
+      // Sign text "Maple Ice Cream"
+      ctx.fillStyle = '#8B4513'
+      ctx.font = 'bold 8px serif'
+      ctx.textAlign = 'center'
+      ctx.fillText('Maple Ice Cream', signX + signWidth / 2, signY + 7)
+
+      // Add decorative ice cream cone signs on either side
+      // Left cone
+      const leftConeX = signX - 8
+      const leftConeY = signY + 5
+      ctx.fillStyle = '#DEB887'
+      ctx.beginPath()
+      ctx.moveTo(jitter(leftConeX - 2), jitter(leftConeY))
+      ctx.lineTo(jitter(leftConeX + 2), jitter(leftConeY))
+      ctx.lineTo(jitter(leftConeX), jitter(leftConeY + 6))
+      ctx.closePath()
+      ctx.fill()
+
+      ctx.fillStyle = '#FFB6C1'
+      drawSketchyCircle(ctx, leftConeX, leftConeY - 2, 2, true)
+
+      // Right cone
+      const rightConeX = signX + signWidth + 8
+      const rightConeY = signY + 5
+      ctx.fillStyle = '#DEB887'
+      ctx.beginPath()
+      ctx.moveTo(jitter(rightConeX - 2), jitter(rightConeY))
+      ctx.lineTo(jitter(rightConeX + 2), jitter(rightConeY))
+      ctx.lineTo(jitter(rightConeX), jitter(rightConeY + 6))
+      ctx.closePath()
+      ctx.fill()
+
+      ctx.fillStyle = '#FFFACD'
+      drawSketchyCircle(ctx, rightConeX, rightConeY - 2, 2, true)
+
+      // Large sign post with ice cream cone outside the building
+      const signPostX = shopX - 30
+      const signPostY = shopY + shopHeight + 5
+      const postHeight = 75
+      const signBoardWidth = 48
+      const signBoardHeight = 36
+
+      // Sign post
+      ctx.fillStyle = '#8B4513'
+      ctx.strokeStyle = '#654321'
+      drawSketchyRect(ctx, signPostX, signPostY, 9, postHeight)
+
+      // Sign board
+      ctx.fillStyle = '#FFFAF0' // Floral white
+      ctx.strokeStyle = '#DDA0DD'
+      ctx.lineWidth = 2
+      drawSketchyRect(
+        ctx,
+        signPostX - signBoardWidth / 2 + 4.5,
+        signPostY - 15,
+        signBoardWidth,
+        signBoardHeight,
+      )
+
+      // Ice cream cone on the sign
+      const coneSignX = signPostX + 4.5
+      const coneSignY = signPostY + 6
+
+      // Cone
+      ctx.fillStyle = '#DEB887'
+      ctx.beginPath()
+      ctx.moveTo(jitter(coneSignX - 9), jitter(coneSignY))
+      ctx.lineTo(jitter(coneSignX + 9), jitter(coneSignY))
+      ctx.lineTo(jitter(coneSignX), jitter(coneSignY + 24))
+      ctx.closePath()
+      ctx.fill()
+
+      // Waffle pattern on cone
+      ctx.strokeStyle = '#CD853F'
+      ctx.lineWidth = 1.5
+      for (let i = 0; i < 5; i++) {
+        const lineY = coneSignY + i * 4 + 2
+        drawSketchyLine(ctx, coneSignX - 6, lineY, coneSignX + 6, lineY, 2)
+      }
+      for (let i = 0; i < 4; i++) {
+        const lineX = coneSignX - 6 + i * 3
+        drawSketchyLine(ctx, lineX, coneSignY, lineX, coneSignY + 18, 2)
+      }
+
+      // Ice cream scoops on sign
+      ctx.fillStyle = '#FFB6C1' // Pink scoop
+      drawSketchyCircle(ctx, coneSignX, coneSignY - 6, 7.5, true)
+      ctx.fillStyle = '#FFFACD' // Vanilla scoop
+      drawSketchyCircle(ctx, coneSignX, coneSignY - 15, 7.5, true)
+      ctx.fillStyle = '#DDA0DD' // Purple scoop (maple flavor)
+      drawSketchyCircle(ctx, coneSignX, coneSignY - 24, 7.5, true)
+
+      // Cherry on top
+      ctx.fillStyle = '#DC143C'
+      drawSketchyCircle(ctx, coneSignX, coneSignY - 30, 3, true)
     }
 
     resizeCanvas()
