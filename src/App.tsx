@@ -41,6 +41,13 @@ function App() {
 
       // Draw bakery
       drawBakery(ctx, canvas.width, canvas.height)
+
+      // Draw large house
+      // Draw large house
+      ctx.save()
+      ctx.scale(2, 2) // Scale up by 150%
+      drawLargeHouse(ctx, canvas.width / 2, canvas.height / 2)
+      ctx.restore()
     }
 
     const jitter = (value: number, amount: number = 2) => {
@@ -212,7 +219,7 @@ function App() {
       const mountainLayers = [
         { peaks: 5, color: '#4B0082', opacity: 0.3, height: 0.15 }, // Far mountains - purple
         { peaks: 4, color: '#483D8B', opacity: 0.5, height: 0.12 }, // Mid mountains - dark slate blue
-        { peaks: 3, color: '#6A5ACD', opacity: 0.7, height: 0.1 },  // Near mountains - slate blue
+        { peaks: 3, color: '#6A5ACD', opacity: 0.7, height: 0.1 }, // Near mountains - slate blue
       ]
 
       mountainLayers.forEach((layer, layerIndex) => {
@@ -221,7 +228,7 @@ function App() {
 
         // Generate mountain peaks
         const peakWidth = width / layer.peaks
-        
+
         ctx.beginPath()
         ctx.moveTo(0, mountainBaseY)
 
@@ -232,7 +239,7 @@ function App() {
 
           // Add some randomness to peak positions
           const peakX = x + (Math.random() - 0.5) * peakWidth * 0.3
-          
+
           if (i === 0) {
             ctx.lineTo(jitter(peakX, 5), jitter(y, 3))
           } else {
@@ -257,12 +264,79 @@ function App() {
           const x = i * peakWidth + (Math.random() - 0.5) * peakWidth * 0.2
           const peakHeight = height * layer.height * (0.7 + Math.random() * 0.3)
           const y = mountainBaseY - peakHeight
-          
+
           if (i < layer.peaks) {
-            const nextX = (i + 1) * peakWidth + (Math.random() - 0.5) * peakWidth * 0.2
-            const nextPeakHeight = height * layer.height * (0.7 + Math.random() * 0.3)
+            const nextX =
+              (i + 1) * peakWidth + (Math.random() - 0.5) * peakWidth * 0.2
+            const nextPeakHeight =
+              height * layer.height * (0.7 + Math.random() * 0.3)
             const nextY = mountainBaseY - nextPeakHeight
             drawSketchyLine(ctx, x, y, nextX, nextY, 3)
+          }
+        }
+      })
+
+      // Add forest texture to mountains
+      ctx.globalAlpha = 0.8
+
+      mountainLayers.forEach((layer, layerIndex) => {
+        const peakWidth = width / layer.peaks
+        const forestDensity = layer.opacity * 100 // More forest on closer mountains
+
+        // Add textured forest pattern on mountain slopes
+        for (let i = 0; i < forestDensity; i++) {
+          const x = Math.random() * width
+          const peakIndex = Math.floor(x / peakWidth)
+          const localX = x % peakWidth
+          const peakProgress = localX / peakWidth
+
+          // Calculate approximate mountain height at this x position
+          const peakHeight = height * layer.height * (0.8 + Math.random() * 0.4)
+          const slopeHeight =
+            peakHeight * (0.3 + Math.sin(peakProgress * Math.PI) * 0.6)
+          const mountainY = mountainBaseY - slopeHeight
+
+          // Only place forest texture on mountain slopes (not at peaks)
+          if (
+            mountainY < mountainBaseY - height * 0.02 &&
+            mountainY > mountainBaseY - slopeHeight * 0.9
+          ) {
+            const forestY = mountainY + Math.random() * height * 0.02
+
+            // Create forest texture using small irregular shapes
+            const forestSize = 1 + Math.random() * 2
+            const forestOpacity = layer.opacity * (0.6 + Math.random() * 0.4)
+
+            // Use different green shades based on mountain layer
+            let forestColor
+            if (layerIndex === 0) {
+              forestColor = `rgba(20, 60, 20, ${forestOpacity})`
+            } else if (layerIndex === 1) {
+              forestColor = `rgba(30, 80, 30, ${forestOpacity})`
+            } else {
+              forestColor = `rgba(40, 100, 40, ${forestOpacity})`
+            }
+
+            ctx.fillStyle = forestColor
+
+            // Create irregular forest patches using multiple small dots
+            for (let j = 0; j < 3; j++) {
+              const dotX = x + (Math.random() - 0.5) * 4
+              const dotY = forestY + (Math.random() - 0.5) * 3
+              const dotSize = forestSize * (0.5 + Math.random() * 0.5)
+
+              ctx.beginPath()
+              ctx.arc(dotX, dotY, dotSize, 0, Math.PI * 2)
+              ctx.fill()
+            }
+
+            // Add some vertical streaks for tree-like texture
+            if (Math.random() > 0.8) {
+              ctx.strokeStyle = forestColor
+              ctx.lineWidth = 0.5
+              const streakHeight = 2 + Math.random() * 3
+              drawSketchyLine(ctx, x, forestY, x, forestY + streakHeight, 1)
+            }
           }
         }
       })
@@ -276,7 +350,7 @@ function App() {
       height: number,
     ) => {
       const riverStartY = height * 1 // Start at bottom of screen (foreground)
-      const riverEndY = height * 0.3 // End at middle of screen (horizon)
+      const riverEndY = height * 0.4 // End at middle of screen (horizon)
       const riverCenterX = width * 0.5 // River flows down the center
       const riverStartWidth = 200 // Very wide in foreground
       const riverEndWidth = 8 // Vanishing point width
@@ -420,31 +494,39 @@ function App() {
     ) => {
       // Generate tree positions with better perspective distribution
       const treePositions = []
-      
+
       // Background trees (smaller, behind mountains)
-      for (let i = 0; i < 30; i++) {
-        const side = Math.random() > 0.5 ? 1 : -1
-        const x = width * (0.5 + side * (0.15 + Math.random() * 0.25))
-        const y = height * (0.15 + Math.random() * 0.15) // Behind mountains
-        const scale = 0.3 + Math.random() * 0.2 // Very small trees
-        treePositions.push({ x, y, scale, layer: 'background' })
+      const horizonY = height * 0.5
+      const mountainBaseY = horizonY - height * 0.1
+
+      for (let i = 0; i < 1000; i++) {
+        const x = width * Math.random()
+
+        // Calculate maximum tree height to not exceed mountain base
+        const treeScale = 0.1 + Math.random() * 0.2
+        const maxTreeHeight = 55 * treeScale // Top of tree foliage
+        const maxTreeY = mountainBaseY - maxTreeHeight
+
+        // Position tree so it doesn't go above mountains
+        const y = Math.max(maxTreeY, height * (0.35 + Math.random() * 0.3))
+
+        treePositions.push({ x, y, scale: treeScale, layer: 'background' })
       }
-      
+
       // Middle distance trees
       for (let i = 0; i < 40; i++) {
-        const side = Math.random() > 0.5 ? 1 : -1
-        const x = width * (0.5 + side * (0.18 + Math.random() * 0.3))
-        const y = height * (0.3 + Math.random() * 0.25) // Middle distance
+        const x = width * Math.random()
+        const y = height * (0.6 + Math.random() * 0.15) // Middle distance
         const scale = 0.6 + Math.random() * 0.3
         treePositions.push({ x, y, scale, layer: 'middle' })
       }
-      
+
       // Foreground trees (largest)
       for (let i = 0; i < 30; i++) {
         const side = Math.random() > 0.5 ? 1 : -1
         const x = width * (0.5 + side * (0.25 + Math.random() * 0.35))
-        const y = height * (0.55 + Math.random() * 0.35) // Foreground
-        const scale = 1.2 + Math.random() * 0.8 // Large trees
+        const y = height * (0.85 + Math.random() * 0.15) // Foreground
+        const scale = 0.5 + Math.random() * 0.8 // Large trees
         treePositions.push({ x, y, scale, layer: 'foreground' })
       }
 
@@ -455,11 +537,17 @@ function App() {
         // Scale trunk based on perspective
         const trunkWidth = 16 * pos.scale
         const trunkHeight = 40 * pos.scale
-        
+
         // Sketchy tree trunk
         ctx.fillStyle = '#8B4513'
         ctx.strokeStyle = '#654321'
-        drawSketchyRect(ctx, pos.x - trunkWidth/2, pos.y, trunkWidth, trunkHeight)
+        drawSketchyRect(
+          ctx,
+          pos.x - trunkWidth / 2,
+          pos.y,
+          trunkWidth,
+          trunkHeight,
+        )
 
         // Add bark texture scaled appropriately
         ctx.strokeStyle = '#654321'
@@ -468,7 +556,14 @@ function App() {
         for (let i = 0; i < barkLines; i++) {
           const y = pos.y + i * (trunkHeight / barkLines) + 5
           const barkWidth = trunkWidth * 0.8
-          drawSketchyLine(ctx, pos.x - barkWidth/2, y, pos.x + barkWidth/2, y, 3)
+          drawSketchyLine(
+            ctx,
+            pos.x - barkWidth / 2,
+            y,
+            pos.x + barkWidth / 2,
+            y,
+            3,
+          )
         }
 
         // Draw sketchy pine tree foliage with triangles - scaled
@@ -505,10 +600,15 @@ function App() {
         // Multiple layers of pine tree triangles - all scaled
         const baseWidth = 50 * pos.scale
         const baseHeight = 30 * pos.scale
-        
+
         // Adjust colors based on distance (darker for background, brighter for foreground)
-        let darkGreen, forestGreen, seaGreen, darkStroke, forestStroke, seaStroke
-        
+        let darkGreen,
+          forestGreen,
+          seaGreen,
+          darkStroke,
+          forestStroke,
+          seaStroke
+
         if (pos.layer === 'background') {
           darkGreen = '#003300'
           forestGreen = '#004400'
@@ -534,15 +634,30 @@ function App() {
 
         ctx.fillStyle = darkGreen
         ctx.strokeStyle = darkStroke
-        drawSketchyTriangle(pos.x, pos.y - 55 * pos.scale, baseWidth, baseHeight)
+        drawSketchyTriangle(
+          pos.x,
+          pos.y - 55 * pos.scale,
+          baseWidth,
+          baseHeight,
+        )
 
         ctx.fillStyle = forestGreen
         ctx.strokeStyle = forestStroke
-        drawSketchyTriangle(pos.x, pos.y - 35 * pos.scale, baseWidth * 1.2, baseHeight * 1.17)
+        drawSketchyTriangle(
+          pos.x,
+          pos.y - 35 * pos.scale,
+          baseWidth * 1.2,
+          baseHeight * 1.17,
+        )
 
         ctx.fillStyle = seaGreen
         ctx.strokeStyle = seaStroke
-        drawSketchyTriangle(pos.x, pos.y - 15 * pos.scale, baseWidth * 1.4, baseHeight * 1.33)
+        drawSketchyTriangle(
+          pos.x,
+          pos.y - 15 * pos.scale,
+          baseWidth * 1.4,
+          baseHeight * 1.33,
+        )
 
         // Add some sketchy pine needle details
         // ctx.strokeStyle = '#32CD32' // Lime green
@@ -934,8 +1049,22 @@ function App() {
       // Roof outline
       ctx.strokeStyle = '#654321'
       ctx.lineWidth = 2
-      drawSketchyLine(ctx, millX - 8, millY, millX + millWidth / 2, millY - roofHeight, 3)
-      drawSketchyLine(ctx, millX + millWidth / 2, millY - roofHeight, millX + millWidth + 8, millY, 3)
+      drawSketchyLine(
+        ctx,
+        millX - 8,
+        millY,
+        millX + millWidth / 2,
+        millY - roofHeight,
+        3,
+      )
+      drawSketchyLine(
+        ctx,
+        millX + millWidth / 2,
+        millY - roofHeight,
+        millX + millWidth + 8,
+        millY,
+        3,
+      )
 
       // Water wheel
       const wheelCenterX = millX - 15
@@ -966,12 +1095,18 @@ function App() {
         const paddleY = wheelCenterY + Math.sin(angle) * (wheelRadius - 8)
         const paddleWidth = 8
         const paddleHeight = 12
-        
+
         // Rotate paddle based on wheel position
         ctx.save()
         ctx.translate(paddleX, paddleY)
         ctx.rotate(angle + Math.PI / 2)
-        drawSketchyRect(ctx, -paddleWidth/2, -paddleHeight/2, paddleWidth, paddleHeight)
+        drawSketchyRect(
+          ctx,
+          -paddleWidth / 2,
+          -paddleHeight / 2,
+          paddleWidth,
+          paddleHeight,
+        )
         ctx.restore()
       }
 
@@ -995,21 +1130,47 @@ function App() {
 
       // Door handle
       ctx.fillStyle = '#FFD700'
-      drawSketchyCircle(ctx, doorX + doorWidth - 3, doorY + doorHeight / 2, 2, false)
+      drawSketchyCircle(
+        ctx,
+        doorX + doorWidth - 3,
+        doorY + doorHeight / 2,
+        2,
+        false,
+      )
 
       // Mill windows
       ctx.fillStyle = '#FFD700'
       const windowSize = 10
       drawSketchyRect(ctx, millX + 15, millY + 15, windowSize, windowSize)
-      drawSketchyRect(ctx, millX + millWidth - 25, millY + 15, windowSize, windowSize)
+      drawSketchyRect(
+        ctx,
+        millX + millWidth - 25,
+        millY + 15,
+        windowSize,
+        windowSize,
+      )
 
       // Window crosses
       ctx.strokeStyle = '#654321'
       ctx.lineWidth = 1
       drawSketchyLine(ctx, millX + 20, millY + 15, millX + 20, millY + 25, 2)
       drawSketchyLine(ctx, millX + 15, millY + 20, millX + 25, millY + 20, 2)
-      drawSketchyLine(ctx, millX + millWidth - 20, millY + 15, millX + millWidth - 20, millY + 25, 2)
-      drawSketchyLine(ctx, millX + millWidth - 25, millY + 20, millX + millWidth - 15, millY + 20, 2)
+      drawSketchyLine(
+        ctx,
+        millX + millWidth - 20,
+        millY + 15,
+        millX + millWidth - 20,
+        millY + 25,
+        2,
+      )
+      drawSketchyLine(
+        ctx,
+        millX + millWidth - 25,
+        millY + 20,
+        millX + millWidth - 15,
+        millY + 20,
+        2,
+      )
     }
 
     const drawBakery = (
@@ -1052,7 +1213,10 @@ function App() {
       const roofHeight = 22
       ctx.beginPath()
       ctx.moveTo(jitter(bakeryX - 6), jitter(bakeryY))
-      ctx.lineTo(jitter(bakeryX + bakeryWidth / 2), jitter(bakeryY - roofHeight))
+      ctx.lineTo(
+        jitter(bakeryX + bakeryWidth / 2),
+        jitter(bakeryY - roofHeight),
+      )
       ctx.lineTo(jitter(bakeryX + bakeryWidth + 6), jitter(bakeryY))
       ctx.closePath()
       ctx.fill()
@@ -1060,8 +1224,22 @@ function App() {
       // Roof outline
       ctx.strokeStyle = '#4A2C2A'
       ctx.lineWidth = 2
-      drawSketchyLine(ctx, bakeryX - 6, bakeryY, bakeryX + bakeryWidth / 2, bakeryY - roofHeight, 3)
-      drawSketchyLine(ctx, bakeryX + bakeryWidth / 2, bakeryY - roofHeight, bakeryX + bakeryWidth + 6, bakeryY, 3)
+      drawSketchyLine(
+        ctx,
+        bakeryX - 6,
+        bakeryY,
+        bakeryX + bakeryWidth / 2,
+        bakeryY - roofHeight,
+        3,
+      )
+      drawSketchyLine(
+        ctx,
+        bakeryX + bakeryWidth / 2,
+        bakeryY - roofHeight,
+        bakeryX + bakeryWidth + 6,
+        bakeryY,
+        3,
+      )
 
       // Chimney with smoke
       const chimneyX = bakeryX + bakeryWidth * 0.75
@@ -1090,16 +1268,50 @@ function App() {
       // Window cross pattern
       ctx.strokeStyle = '#654321'
       ctx.lineWidth = 2
-      drawSketchyLine(ctx, windowX + windowWidth/2, windowY, windowX + windowWidth/2, windowY + windowHeight, 2)
-      drawSketchyLine(ctx, windowX, windowY + windowHeight/2, windowX + windowWidth, windowY + windowHeight/2, 2)
+      drawSketchyLine(
+        ctx,
+        windowX + windowWidth / 2,
+        windowY,
+        windowX + windowWidth / 2,
+        windowY + windowHeight,
+        2,
+      )
+      drawSketchyLine(
+        ctx,
+        windowX,
+        windowY + windowHeight / 2,
+        windowX + windowWidth,
+        windowY + windowHeight / 2,
+        2,
+      )
 
       // Small window on right
       const smallWindowSize = 10
-      drawSketchyRect(ctx, bakeryX + bakeryWidth - 22, bakeryY + 15, smallWindowSize, smallWindowSize)
-      
+      drawSketchyRect(
+        ctx,
+        bakeryX + bakeryWidth - 22,
+        bakeryY + 15,
+        smallWindowSize,
+        smallWindowSize,
+      )
+
       // Small window cross
-      drawSketchyLine(ctx, bakeryX + bakeryWidth - 17, bakeryY + 15, bakeryX + bakeryWidth - 17, bakeryY + 25, 2)
-      drawSketchyLine(ctx, bakeryX + bakeryWidth - 22, bakeryY + 20, bakeryX + bakeryWidth - 12, bakeryY + 20, 2)
+      drawSketchyLine(
+        ctx,
+        bakeryX + bakeryWidth - 17,
+        bakeryY + 15,
+        bakeryX + bakeryWidth - 17,
+        bakeryY + 25,
+        2,
+      )
+      drawSketchyLine(
+        ctx,
+        bakeryX + bakeryWidth - 22,
+        bakeryY + 20,
+        bakeryX + bakeryWidth - 12,
+        bakeryY + 20,
+        2,
+      )
 
       // Bakery door
       const doorWidth = 14
@@ -1123,7 +1335,14 @@ function App() {
       // Sign post
       ctx.strokeStyle = '#654321'
       ctx.lineWidth = 3
-      drawSketchyLine(ctx, signX + signWidth / 2, bakeryY, signX + signWidth / 2, signY + signHeight, 2)
+      drawSketchyLine(
+        ctx,
+        signX + signWidth / 2,
+        bakeryY,
+        signX + signWidth / 2,
+        signY + signHeight,
+        2,
+      )
 
       // Sign board
       ctx.fillStyle = '#DEB887' // Burlywood
@@ -1139,8 +1358,291 @@ function App() {
       // Sign chains/ropes
       ctx.strokeStyle = '#654321'
       ctx.lineWidth = 1
-      drawSketchyLine(ctx, signX + signWidth / 2 - 8, signY, signX + 5, signY + 2, 1)
-      drawSketchyLine(ctx, signX + signWidth / 2 + 8, signY, signX + signWidth - 5, signY + 2, 1)
+      drawSketchyLine(
+        ctx,
+        signX + signWidth / 2 - 8,
+        signY,
+        signX + 5,
+        signY + 2,
+        1,
+      )
+      drawSketchyLine(
+        ctx,
+        signX + signWidth / 2 + 8,
+        signY,
+        signX + signWidth - 5,
+        signY + 2,
+        1,
+      )
+    }
+
+    const drawCalicoPattern = (
+      ctx: CanvasRenderingContext2D,
+      x: number,
+      y: number,
+      width: number,
+      height: number,
+    ) => {
+      // Orange patches
+      ctx.fillStyle = '#FF8C42'
+      for (let i = 0; i < 8; i++) {
+        const patchX = x + Math.random() * width * 0.8
+        const patchY = y + Math.random() * height * 0.8
+        const patchSize = 2 + Math.random() * 3
+        drawSketchyCircle(ctx, patchX, patchY, patchSize, true)
+      }
+
+      // Black patches
+      ctx.fillStyle = '#2F2F2F'
+      for (let i = 0; i < 6; i++) {
+        const patchX = x + Math.random() * width * 0.8
+        const patchY = y + Math.random() * height * 0.8
+        const patchSize = 1.5 + Math.random() * 2.5
+        drawSketchyCircle(ctx, patchX, patchY, patchSize, true)
+      }
+    }
+
+    const drawLargeHouse = (
+      ctx: CanvasRenderingContext2D,
+      width: number,
+      height: number,
+    ) => {
+      // Position large house in bottom right
+      const houseX = width * 0.75
+      const houseY = height * 0.8
+      const houseWidth = 120
+      const houseHeight = 70
+
+      // House main structure - stone/brick
+      ctx.fillStyle = '#D2B48C' // Tan color
+      ctx.strokeStyle = '#8B7355'
+      drawSketchyRect(ctx, houseX, houseY, houseWidth, houseHeight)
+
+      // Stone/brick texture
+      ctx.strokeStyle = '#8B7355'
+      ctx.lineWidth = 1
+      for (let y = houseY + 12; y < houseY + houseHeight; y += 15) {
+        drawSketchyLine(ctx, houseX, y, houseX + houseWidth, y, 8)
+      }
+
+      // Vertical mortar lines (offset pattern)
+      for (let y = houseY; y < houseY + houseHeight; y += 30) {
+        for (let x = houseX + 25; x < houseX + houseWidth; x += 30) {
+          drawSketchyLine(ctx, x, y, x, y + 15, 2)
+        }
+      }
+      for (let y = houseY + 15; y < houseY + houseHeight; y += 30) {
+        for (let x = houseX + 10; x < houseX + houseWidth; x += 30) {
+          drawSketchyLine(ctx, x, y, x, y + 15, 2)
+        }
+      }
+
+      // Large roof
+      ctx.fillStyle = '#8B4513'
+      const roofHeight = 35
+      ctx.beginPath()
+      ctx.moveTo(jitter(houseX - 10), jitter(houseY))
+      ctx.lineTo(jitter(houseX + houseWidth / 2), jitter(houseY - roofHeight))
+      ctx.lineTo(jitter(houseX + houseWidth + 10), jitter(houseY))
+      ctx.closePath()
+      ctx.fill()
+
+      // Roof outline
+      ctx.strokeStyle = '#654321'
+      ctx.lineWidth = 3
+      drawSketchyLine(
+        ctx,
+        houseX - 10,
+        houseY,
+        houseX + houseWidth / 2,
+        houseY - roofHeight,
+        4,
+      )
+      drawSketchyLine(
+        ctx,
+        houseX + houseWidth / 2,
+        houseY - roofHeight,
+        houseX + houseWidth + 10,
+        houseY,
+        4,
+      )
+
+      // Chimney
+      const chimneyX = houseX + houseWidth * 0.8
+      const chimneyY = houseY - roofHeight - 5
+      ctx.fillStyle = '#8B4513'
+      drawSketchyRect(ctx, chimneyX, chimneyY, 12, 25)
+
+      // Chimney smoke
+      for (let i = 0; i < 6; i++) {
+        const puffY = chimneyY - i * 15 - 10
+        const drift = Math.sin(i * 0.7) * 8 + i * 4
+        const puffSize = 4 + i * 2
+
+        ctx.fillStyle = `rgba(220, 220, 220, ${0.8 - i * 0.1})`
+        drawSketchyCircle(ctx, chimneyX + drift, puffY, puffSize, true)
+      }
+
+      // Front door
+      const doorWidth = 20
+      const doorHeight = 35
+      const doorX = houseX + 15
+      const doorY = houseY + houseHeight - doorHeight
+
+      ctx.fillStyle = '#654321'
+      drawSketchyRect(ctx, doorX, doorY, doorWidth, doorHeight)
+
+      // Door handle
+      ctx.fillStyle = '#FFD700'
+      drawSketchyCircle(
+        ctx,
+        doorX + doorWidth - 4,
+        doorY + doorHeight / 2,
+        2,
+        false,
+      )
+
+      // Door panels
+      ctx.strokeStyle = '#4A2C2A'
+      ctx.lineWidth = 2
+      drawSketchyLine(
+        ctx,
+        doorX + 5,
+        doorY + 8,
+        doorX + doorWidth - 5,
+        doorY + 8,
+        2,
+      )
+      drawSketchyLine(
+        ctx,
+        doorX + 5,
+        doorY + doorHeight - 8,
+        doorX + doorWidth - 5,
+        doorY + doorHeight - 8,
+        2,
+      )
+
+      // Large windows
+      ctx.fillStyle = '#FFE4B5' // Warm window light
+
+      // Left window
+      const leftWindowX = houseX + 50
+      const leftWindowY = houseY + 25
+      const windowWidth = 25
+      const windowHeight = 20
+      drawSketchyRect(ctx, leftWindowX, leftWindowY, windowWidth, windowHeight)
+
+      // Window cross pattern
+      ctx.strokeStyle = '#654321'
+      ctx.lineWidth = 2
+      drawSketchyLine(
+        ctx,
+        leftWindowX + windowWidth / 2,
+        leftWindowY,
+        leftWindowX + windowWidth / 2,
+        leftWindowY + windowHeight,
+        2,
+      )
+      drawSketchyLine(
+        ctx,
+        leftWindowX,
+        leftWindowY + windowHeight / 2,
+        leftWindowX + windowWidth,
+        leftWindowY + windowHeight / 2,
+        2,
+      )
+
+      // Right window with calico cat
+      const rightWindowX = houseX + 85
+      const rightWindowY = houseY + 25
+      drawSketchyRect(
+        ctx,
+        rightWindowX,
+        rightWindowY,
+        windowWidth,
+        windowHeight,
+      )
+
+      // Window cross pattern
+      drawSketchyLine(
+        ctx,
+        rightWindowX + windowWidth / 2,
+        rightWindowY,
+        rightWindowX + windowWidth / 2,
+        rightWindowY + windowHeight,
+        2,
+      )
+      drawSketchyLine(
+        ctx,
+        rightWindowX,
+        rightWindowY + windowHeight / 2,
+        rightWindowX + windowWidth,
+        rightWindowY + windowHeight / 2,
+        2,
+      )
+
+      // Calico cat in right window
+      const catX = rightWindowX + windowWidth / 2
+      const catY = rightWindowY + windowHeight / 2 + 3
+
+      // Cat body (curled up sleeping position)
+      ctx.fillStyle = '#F5F5DC' // Beige base
+      drawSketchyCircle(ctx, catX, catY, 8, true)
+
+      // Add calico pattern
+      drawCalicoPattern(ctx, catX - 8, catY - 8, 16, 16)
+
+      // Cat head
+      ctx.fillStyle = '#F5F5DC'
+      drawSketchyCircle(ctx, catX - 3, catY - 5, 5, true)
+
+      // Add calico pattern to head
+      drawCalicoPattern(ctx, catX - 8, catY - 10, 10, 10)
+
+      // Cat ears
+      ctx.fillStyle = '#F5F5DC'
+      ctx.beginPath()
+      ctx.moveTo(jitter(catX - 6), jitter(catY - 8))
+      ctx.lineTo(jitter(catX - 4), jitter(catY - 11))
+      ctx.lineTo(jitter(catX - 2), jitter(catY - 8))
+      ctx.closePath()
+      ctx.fill()
+
+      ctx.beginPath()
+      ctx.moveTo(jitter(catX + 1), jitter(catY - 8))
+      ctx.lineTo(jitter(catX + 3), jitter(catY - 11))
+      ctx.lineTo(jitter(catX + 5), jitter(catY - 8))
+      ctx.closePath()
+      ctx.fill()
+
+      // Cat eyes (closed - sleeping)
+      ctx.strokeStyle = '#2F2F2F'
+      ctx.lineWidth = 1
+      drawSketchyLine(ctx, catX - 5, catY - 6, catX - 3, catY - 6, 1)
+      drawSketchyLine(ctx, catX - 1, catY - 6, catX + 1, catY - 6, 1)
+
+      // Cat nose
+      ctx.fillStyle = '#FFB6C1'
+      ctx.beginPath()
+      ctx.moveTo(jitter(catX - 1), jitter(catY - 4))
+      ctx.lineTo(jitter(catX), jitter(catY - 5))
+      ctx.lineTo(jitter(catX + 1), jitter(catY - 4))
+      ctx.closePath()
+      ctx.fill()
+
+      // Cat tail (curled around)
+      ctx.strokeStyle = '#F5F5DC'
+      ctx.lineWidth = 3
+      ctx.beginPath()
+      ctx.arc(catX + 5, catY + 2, 6, 0, Math.PI * 1.5)
+      ctx.stroke()
+
+      // Add orange patches to tail
+      ctx.strokeStyle = '#FF8C42'
+      ctx.lineWidth = 2
+      ctx.beginPath()
+      ctx.arc(catX + 5, catY + 2, 6, 0, Math.PI * 0.5)
+      ctx.stroke()
     }
 
     resizeCanvas()
