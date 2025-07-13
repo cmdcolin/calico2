@@ -120,55 +120,104 @@ function App() {
     }
 
     const drawRiver = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
-      const riverWidth = 80
-      const centerY = height * 0.7
+      const riverStartY = height * 0.85  // Start lower in foreground
+      const riverEndY = height * 0.3     // End higher (horizon)
+      const riverStartWidth = 150        // Wide in foreground
+      const riverEndWidth = 20           // Narrow at horizon
       
-      // Draw river with sketchy fill
-      ctx.fillStyle = '#4682B4'
+      // Create gradient for perspective fade
+      const riverGradient = ctx.createLinearGradient(0, riverStartY, 0, riverEndY)
+      riverGradient.addColorStop(0, '#4682B4')
+      riverGradient.addColorStop(0.7, '#87CEEB')
+      riverGradient.addColorStop(1, '#B0C4DE')
+      
+      ctx.fillStyle = riverGradient
       ctx.beginPath()
       
-      // Top edge of river
-      ctx.moveTo(jitter(0), jitter(centerY - riverWidth/2))
-      for (let x = 0; x <= width; x += 10) {
-        const curve = Math.sin(x * 0.01) * 30 + Math.sin(x * 0.003) * 50
-        const y1 = centerY + curve - riverWidth/2
-        ctx.lineTo(jitter(x), jitter(y1, 4))
+      // Calculate river path with perspective
+      const riverPoints: {x: number, y: number}[] = []
+      
+      // Top edge of river (left bank)
+      for (let x = 0; x <= width; x += 8) {
+        const progress = x / width
+        const currentY = riverStartY + (riverEndY - riverStartY) * progress
+        const currentWidth = riverStartWidth + (riverEndWidth - riverStartWidth) * progress
+        
+        // Add curve that gets smaller with distance
+        const curveAmount = (1 - progress) * 40 + progress * 10
+        const curve = Math.sin(x * 0.008) * curveAmount + Math.sin(x * 0.002) * curveAmount * 0.5
+        
+        const y1 = currentY + curve - currentWidth/2
+        riverPoints.push({x: jitter(x), y: jitter(y1, 3)})
+        
+        if (x === 0) {
+          ctx.moveTo(riverPoints[riverPoints.length - 1].x, riverPoints[riverPoints.length - 1].y)
+        } else {
+          ctx.lineTo(riverPoints[riverPoints.length - 1].x, riverPoints[riverPoints.length - 1].y)
+        }
       }
       
-      // Bottom edge of river
-      for (let x = width; x >= 0; x -= 10) {
-        const curve = Math.sin(x * 0.01) * 30 + Math.sin(x * 0.003) * 50
-        const y2 = centerY + curve + riverWidth/2
-        ctx.lineTo(jitter(x), jitter(y2, 4))
+      // Bottom edge of river (right bank) - draw backwards
+      for (let x = width; x >= 0; x -= 8) {
+        const progress = x / width
+        const currentY = riverStartY + (riverEndY - riverStartY) * progress
+        const currentWidth = riverStartWidth + (riverEndWidth - riverStartWidth) * progress
+        
+        const curveAmount = (1 - progress) * 40 + progress * 10
+        const curve = Math.sin(x * 0.008) * curveAmount + Math.sin(x * 0.002) * curveAmount * 0.5
+        
+        const y2 = currentY + curve + currentWidth/2
+        ctx.lineTo(jitter(x), jitter(y2, 3))
       }
       
       ctx.closePath()
       ctx.fill()
       
-      // Add sketchy water texture
+      // Add sketchy water texture that gets smaller with distance
       ctx.strokeStyle = '#1E90FF'
-      ctx.lineWidth = 2
-      for (let x = 20; x < width - 20; x += 25) {
-        const curve = Math.sin(x * 0.01) * 30 + Math.sin(x * 0.003) * 50
-        const y = centerY + curve
-        drawSketchyLine(ctx, x - 10, y - 5, x + 10, y + 5, 4)
-        drawSketchyLine(ctx, x - 8, y + 8, x + 12, y - 8, 4)
+      for (let x = 20; x < width - 20; x += 20) {
+        const progress = x / width
+        const currentY = riverStartY + (riverEndY - riverStartY) * progress
+        const currentWidth = riverStartWidth + (riverEndWidth - riverStartWidth) * progress
+        const curveAmount = (1 - progress) * 40 + progress * 10
+        const curve = Math.sin(x * 0.008) * curveAmount + Math.sin(x * 0.002) * curveAmount * 0.5
+        
+        const y = currentY + curve
+        const lineWidth = Math.max(1, 3 * (1 - progress))
+        const rippleSize = Math.max(5, 15 * (1 - progress))
+        
+        ctx.lineWidth = lineWidth
+        drawSketchyLine(ctx, x - rippleSize/2, y - rippleSize/4, x + rippleSize/2, y + rippleSize/4, 3)
+        drawSketchyLine(ctx, x - rippleSize/3, y + rippleSize/3, x + rippleSize/3, y - rippleSize/3, 3)
       }
       
-      // Sketchy river banks
+      // Sketchy river banks with perspective
       ctx.strokeStyle = '#006400'
-      ctx.lineWidth = 3
-      for (let x = 0; x <= width; x += 15) {
-        const curve = Math.sin(x * 0.01) * 30 + Math.sin(x * 0.003) * 50
-        const y1 = centerY + curve - riverWidth/2
-        const y2 = centerY + curve + riverWidth/2
+      for (let x = 0; x <= width; x += 12) {
+        const progress = x / width
+        const currentY = riverStartY + (riverEndY - riverStartY) * progress
+        const currentWidth = riverStartWidth + (riverEndWidth - riverStartWidth) * progress
+        const curveAmount = (1 - progress) * 40 + progress * 10
+        const curve = Math.sin(x * 0.008) * curveAmount + Math.sin(x * 0.002) * curveAmount * 0.5
+        
+        const y1 = currentY + curve - currentWidth/2
+        const y2 = currentY + curve + currentWidth/2
+        const bankLineWidth = Math.max(1, 4 * (1 - progress * 0.7))
+        
+        ctx.lineWidth = bankLineWidth
         
         if (x > 0) {
-          const prevCurve = Math.sin((x-15) * 0.01) * 30 + Math.sin((x-15) * 0.003) * 50
-          const prevY1 = centerY + prevCurve - riverWidth/2
-          const prevY2 = centerY + prevCurve + riverWidth/2
-          drawSketchyLine(ctx, x-15, prevY1, x, y1, 3)
-          drawSketchyLine(ctx, x-15, prevY2, x, y2, 3)
+          const prevProgress = (x-12) / width
+          const prevY = riverStartY + (riverEndY - riverStartY) * prevProgress
+          const prevWidth = riverStartWidth + (riverEndWidth - riverStartWidth) * prevProgress
+          const prevCurveAmount = (1 - prevProgress) * 40 + prevProgress * 10
+          const prevCurve = Math.sin((x-12) * 0.008) * prevCurveAmount + Math.sin((x-12) * 0.002) * prevCurveAmount * 0.5
+          
+          const prevY1 = prevY + prevCurve - prevWidth/2
+          const prevY2 = prevY + prevCurve + prevWidth/2
+          
+          drawSketchyLine(ctx, x-12, prevY1, x, y1, 2)
+          drawSketchyLine(ctx, x-12, prevY2, x, y2, 2)
         }
       }
     }
